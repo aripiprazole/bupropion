@@ -1,0 +1,22 @@
+[package]
+name = "bupropion"
+description = "Fancy error handler implementation for Miette"
+version = "0.0.1"
+edition = "2021"
+authors = ["Gabrielle Guimarães de Oliveira"]
+documentation = "https://github.com/aripiprazole/bupropion"
+license = "MIT"
+keywords = ["incremental", "parsing", "asena"]
+categories = ["parsing", "text-editors"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+miette = { version = "5.10.0", features = ["fancy"] }
+thiserror = "1.0.46"
+owo-colors = "3.5.0"
+textwrap = "0.16.0"
+supports-unicode = "2.0.0"
+supports-color = "2.0.0"
+supports-hyperlinks = "2.1.0"
+terminal_size = "0.2.6"
