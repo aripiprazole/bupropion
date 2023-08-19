@@ -1,0 +1,21 @@
+module Ind.
+
+import Prelude.
+
+-- | Defines an natural inductive type, which can be either `Zero`,
+-- or it's successor `Succ`, which takes the previous and returns the
+-- next natural number.
+inductive data Nat where
+  Zero : Nat,
+  Succ : Nat -> Nat.
+
+-- | Defines a simple sum aritimetic function which sums with church
+-- encoding.
++ : Nnat -> Nat -> Nat := \a, b ->
+  elim a of
+    Zero   => Zero,
+    Succ n => Succ (+ n b).
+
+@eval + (Succ Zero) Zero.
+
+@type Succ (Succ Zero).

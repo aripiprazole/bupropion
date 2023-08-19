@@ -55,7 +55,7 @@ checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
 name = "bupropion"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "miette",
  "owo-colors",
@@ -65,6 +65,7 @@ dependencies = [
  "terminal_size 0.2.6",
  "textwrap 0.16.0",
  "thiserror",
+ "unicode-width",
 ]
 
 [[package]]

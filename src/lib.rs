@@ -26,6 +26,7 @@ use miette::NarratableReportHandler;
 use miette::ReportHandler;
 use miette::ThemeCharacters;
 use miette::ThemeStyles;
+use unicode_width::UnicodeWidthChar;
 
 /// Settings to control the color format used for graphical rendering.
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
@@ -74,7 +75,30 @@ pub struct MietteHandlerOpts {
 impl MietteHandlerOpts {
     /// Create a new `MietteHandlerOpts`.
     pub fn new() -> Self {
-        Default::default()
+        Self::default()
+            .terminal_links(true)
+            .unicode(true)
+            .context_lines(2)
+            .tab_width(2)
+            .graphical_theme(miette::GraphicalTheme {
+                characters: ThemeCharacters {
+                    uarrow: '^',
+                    ..ThemeCharacters::unicode()
+                },
+                styles: ThemeStyles {
+                    error: owo_colors::Style::new()
+                        .on_bright_red()
+                        .bright_white()
+                        .bold(),
+                    link: owo_colors::Style::new().dimmed(),
+                    linum: owo_colors::Style::new().dimmed(),
+                    highlights: vec![owo_colors::Style::new().bright_red()],
+                    ..ThemeStyles::ansi()
+                },
+            })
+            .color(true)
+            .rgb_colors(RgbColors::Never)
+            .with_cause_chain()
     }
 
     /// If true, specify whether the graphical handler will make codes be
@@ -977,7 +1001,7 @@ impl GraphicalReportHandler {
                 // Round up to the next multiple of tab_width
                 tab_width - column % tab_width
             } else {
-                2 // TODO: LOOK AT IT PLEASE
+                c.width().unwrap_or(0)
             };
             column += width;
             width
