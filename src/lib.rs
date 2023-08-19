@@ -864,6 +864,8 @@ impl GraphicalReportHandler {
                     &single_line,
                     &labels,
                 )?;
+                self.write_no_linum(f, linum_width)?;
+                writeln!(f)?;
             }
             for hl in multi_line {
                 if hl.label().is_some() && line.span_ends(hl) && !line.span_starts(hl) {
