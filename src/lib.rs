@@ -86,11 +86,8 @@ impl MietteHandlerOpts {
                     ..ThemeCharacters::unicode()
                 },
                 styles: ThemeStyles {
-                    error: owo_colors::Style::new()
-                        .on_bright_red()
-                        .bright_white()
-                        .bold(),
-                    link: owo_colors::Style::new().dimmed(),
+                    error: owo_colors::Style::new().bright_red().bold(),
+                    link: owo_colors::Style::new(),
                     linum: owo_colors::Style::new().dimmed(),
                     highlights: vec![owo_colors::Style::new().bright_red()],
                     ..ThemeStyles::ansi()
@@ -204,6 +201,16 @@ impl MietteHandlerOpts {
 
     /// Builds a [`MietteHandler`] from this builder.
     pub fn build(self) -> MietteHandler {
+        MietteHandler {
+            inner: match self.build_inner() {
+                Ok(handler) => Box::new(handler),
+                Err(handler) => Box::new(handler),
+            },
+        }
+    }
+
+    /// Builds a [`MietteHandler`] from this builder.
+    pub(crate) fn build_inner(self) -> Result<GraphicalReportHandler, NarratableReportHandler> {
         let graphical = self.is_graphical();
         let width = self.get_width();
         if !graphical {
@@ -221,9 +228,7 @@ impl MietteHandlerOpts {
                     handler = handler.without_cause_chain();
                 }
             }
-            MietteHandler {
-                inner: Box::new(handler),
-            }
+            Err(handler)
         } else {
             let linkify = self.use_links();
             let characters = match self.unicode {
@@ -271,9 +276,7 @@ impl MietteHandlerOpts {
             if let Some(w) = self.tab_width {
                 handler = handler.tab_width(w);
             }
-            MietteHandler {
-                inner: Box::new(handler),
-            }
+            Ok(handler)
         }
     }
 
@@ -511,7 +514,7 @@ impl GraphicalReportHandler {
             Some(Severity::Warning) => self.theme.styles.warning,
             Some(Severity::Advice) => self.theme.styles.advice,
         };
-        write!(f, "{} ", " FAILURE ".style(severity_style))?;
+        write!(f, "{}", "failure".style(severity_style))?;
         self.render_header(f, diagnostic)?;
         self.render_causes(f, diagnostic)?;
         let src = diagnostic.source_code();
@@ -544,20 +547,22 @@ impl GraphicalReportHandler {
                 "".to_string()
             };
             let link = format!(
-                "\u{1b}]8;;{}\u{1b}\\{}{}\u{1b}]8;;\u{1b}\\",
+                "\u{1b}]8;;{}\u{1b}\\{}\u{1b}]8;;\u{1b}\\",
                 url,
                 code.style(severity_style),
-                "(link)".style(self.theme.styles.link)
             );
-            write!(header, "{}", link)?;
-            writeln!(f, "{}", header)?;
-            writeln!(f)?;
+            write!(
+                header,
+                "{}",
+                format!("[{link}{}", "]:".style(severity_style)).style(severity_style)
+            )?;
+            write!(f, "{}", header)?;
         } else if let Some(code) = diagnostic.code() {
             if self.links == LinkStyle::Text && diagnostic.url().is_some() {
                 let url = diagnostic.url().unwrap(); // safe
                 write!(header, " ({})", url.style(self.theme.styles.link))?;
             }
-            write!(header, "{}", format!("[{code}] ").style(severity_style))?;
+            write!(header, "{}", format!("[{code}]: ").style(severity_style))?;
             write!(f, "{}", header)?;
         }
         Ok(())
@@ -645,6 +650,7 @@ impl GraphicalReportHandler {
             let opts = textwrap::Options::new(width)
                 .initial_indent(&initial_indent)
                 .subsequent_indent("        ");
+            write!(f, "{}", "=".style(self.theme.styles.linum))?;
             writeln!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
         }
         Ok(())
@@ -661,13 +667,13 @@ impl GraphicalReportHandler {
             for rel in related {
                 match rel.severity() {
                     Some(Severity::Error) | None => {
-                        write!(f, "{}", " ERROR ".style(self.theme.styles.error))?
+                        write!(f, "{}", "error".style(self.theme.styles.error))?
                     }
                     Some(Severity::Warning) => {
-                        write!(f, "{}", " WARNING ".style(self.theme.styles.warning))?
+                        write!(f, "{}", "warning".style(self.theme.styles.warning))?
                     }
                     Some(Severity::Advice) => {
-                        write!(f, "{}", " ADVICE ".style(self.theme.styles.advice))?
+                        write!(f, "{}", "advice".style(self.theme.styles.advice))?
                     }
                 };
                 self.render_header(f, rel)?;
@@ -863,12 +869,7 @@ impl GraphicalReportHandler {
         self.write_no_linum(f, linum_width)?;
         writeln!(f)?;
 
-        writeln!(
-            f,
-            "{}{} ",
-            " ".repeat(linum_width + 2),
-            "=".style(self.theme.styles.linum)
-        )?;
+        write!(f, "{}", " ".repeat(linum_width + 2),)?;
         Ok(())
     }
 
@@ -1402,5 +1403,51 @@ impl<'a> std::fmt::Display for ErrorKind<'a> {
             ErrorKind::Diagnostic(d) => d.fmt(f),
             ErrorKind::StdError(e) => e.fmt(f),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use miette::{diagnostic, NamedSource};
+
+    #[derive(Debug, thiserror::Error, miette::Diagnostic)]
+    #[error("inner failure")]
+    #[diagnostic(code(test::inner), help("this is a help message"), url(docsrs))]
+    struct Inner {
+        #[label = "here"]
+        here: miette::SourceSpan,
+    }
+
+    #[derive(Debug, thiserror::Error, miette::Diagnostic)]
+    #[error("test failure")]
+    #[diagnostic(code(test::failure))]
+    struct Failure {
+        #[source_code]
+        source_code: miette::NamedSource,
+
+        #[label = "here"]
+        here: miette::SourceSpan,
+
+        #[related]
+        inner: Vec<Inner>,
+    }
+
+    #[test]
+    fn test_render_report() {
+        let handler = MietteHandlerOpts::new().build_inner();
+        let mut output = String::new();
+        let failure = Failure {
+            source_code: NamedSource::new("Example.zu", include_str!("../Example.zu")),
+            here: miette::SourceSpan::from(7..10),
+            inner: vec![Inner {
+                here: miette::SourceSpan::from(7..10),
+            }],
+        };
+        handler
+            .unwrap()
+            .render_report(&mut output, &failure)
+            .unwrap();
+        println!("{output}");
     }
 }
