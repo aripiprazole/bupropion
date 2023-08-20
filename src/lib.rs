@@ -674,6 +674,7 @@ impl GraphicalReportHandler {
     ) -> fmt::Result {
         if let Some(related) = diagnostic.related() {
             writeln!(f)?;
+            writeln!(f)?;
             for rel in related {
                 match rel.severity() {
                     Some(Severity::Error) | None => {
