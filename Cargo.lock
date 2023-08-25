@@ -55,7 +55,7 @@ checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
 
 [[package]]
 name = "bupropion"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "backtrace",
  "backtrace-ext",

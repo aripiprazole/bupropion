@@ -518,7 +518,6 @@ impl GraphicalReportHandler {
         f: &mut impl fmt::Write,
         diagnostic: &(dyn Diagnostic),
     ) -> fmt::Result {
-        writeln!(f)?;
         let severity_style = match diagnostic.severity() {
             Some(Severity::Error) | None => self.theme.styles.error,
             Some(Severity::Warning) => self.theme.styles.warning,
@@ -593,7 +592,6 @@ impl GraphicalReportHandler {
             .subsequent_indent(&rest_indent);
 
         writeln!(f, "{}", textwrap::fill(&diagnostic.to_string(), opts))?;
-        writeln!(f)?;
 
         if !self.with_cause_chain {
             return Ok(());
@@ -661,8 +659,9 @@ impl GraphicalReportHandler {
                 .initial_indent(&initial_indent)
                 .subsequent_indent("        ");
             write!(f, "{}", "=".style(self.theme.styles.linum))?;
-            writeln!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
+            write!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
         }
+        writeln!(f)?;
         Ok(())
     }
 
@@ -673,8 +672,6 @@ impl GraphicalReportHandler {
         parent_src: Option<&dyn SourceCode>,
     ) -> fmt::Result {
         if let Some(related) = diagnostic.related() {
-            writeln!(f)?;
-            writeln!(f)?;
             for rel in related {
                 match rel.severity() {
                     Some(Severity::Error) | None => {
