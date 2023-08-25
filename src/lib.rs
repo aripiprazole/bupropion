@@ -662,6 +662,7 @@ impl GraphicalReportHandler {
             write!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
         }
         writeln!(f)?;
+        writeln!(f)?;
         Ok(())
     }
 
