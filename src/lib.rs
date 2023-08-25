@@ -843,7 +843,7 @@ impl GraphicalReportHandler {
             self.render_line_gutter(f, max_gutter, line, &labels)?;
 
             // And _now_ we can print out the line text itself!
-            self.render_line_text(f, &labels, &line.text)?;
+            self.render_line_text(f, &labels, line)?;
 
             // Next, we write all the highlights that apply to this particular line.
             let (single_line, multi_line): (Vec<_>, Vec<_>) = labels
@@ -1047,16 +1047,38 @@ impl GraphicalReportHandler {
     fn render_line_text(
         &self,
         f: &mut impl fmt::Write,
-        _: &[FancySpan],
-        text: &str,
+        labels: &[FancySpan],
+        line: &Line,
     ) -> fmt::Result {
-        for (c, width) in text.chars().zip(self.line_visual_char_width(text)) {
+        for (i, (c, width)) in line
+            .text
+            .chars()
+            .zip(self.line_visual_char_width(&line.text))
+            .enumerate()
+        {
             if c == '\t' {
                 for _ in 0..width {
                     f.write_char(' ')?
                 }
             } else {
-                write!(f, "{}", c.style(owo_colors::Style::new().white()))?
+                let mut is_red = false;
+                for label in labels {
+                    if label.span.offset() <= line.offset + i
+                        && label.span.offset() + label.span.len() >= line.offset + i + 1
+                    {
+                        is_red = true;
+                    }
+                }
+
+                write!(
+                    f,
+                    "{}",
+                    if is_red {
+                        c.style(owo_colors::Style::new().bright_red())
+                    } else {
+                        c.style(owo_colors::Style::new().white())
+                    }
+                )?
             }
         }
         f.write_char('\n')?;
