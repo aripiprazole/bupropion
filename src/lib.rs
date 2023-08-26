@@ -20,14 +20,23 @@
  * NOTE: This module is made to change the style of the pretty printting of errors.
  */
 use std::fmt;
+use std::fmt::Write;
 
+use backtrace::Backtrace;
+use thiserror::Error;
+
+use miette::{Context, Result};
 use miette::Diagnostic;
 use miette::GraphicalTheme;
 use miette::NarratableReportHandler;
 use miette::ReportHandler;
 use miette::ThemeCharacters;
 use miette::ThemeStyles;
+use textwrap::Options;
 use unicode_width::UnicodeWidthChar;
+
+use miette::{LabeledSpan, MietteError, Severity, SourceCode, SourceSpan, SpanContents};
+use owo_colors::{OwoColorize, Style};
 
 /// Settings to control the color format used for graphical rendering.
 #[derive(Default, Copy, Clone, Debug, Eq, PartialEq)]
@@ -316,10 +325,9 @@ impl BupropionHandlerOpts {
     #[cfg(not(miri))]
     pub(crate) fn get_width(&self) -> usize {
         self.width.unwrap_or_else(|| {
-            terminal_size::terminal_size()
-                .unwrap_or((terminal_size::Width(80), terminal_size::Height(0)))
-                .0
-                 .0 as usize
+            let size = terminal_size::terminal_size()
+                .unwrap_or((terminal_size::Width(80), terminal_size::Height(0)));
+            size.0 .0 as usize
         })
     }
 
@@ -372,24 +380,17 @@ impl ReportHandler for MietteHandler {
     }
 }
 
-use std::fmt::Write;
-
-use miette::{LabeledSpan, MietteError, Severity, SourceCode, SourceSpan, SpanContents};
-use owo_colors::{OwoColorize, Style};
-
-/**
-A [`ReportHandler`] that displays a given [`Report`](crate::Report) in a
-quasi-graphical way, using terminal colors, unicode drawing characters, and
-other such things.
-
-This is the default reporter bundled with `miette`.
-
-This printer can be customized by using [`new_themed()`](GraphicalReportHandler::new_themed) and handing it a
-[`GraphicalTheme`] of your own creation (or using one of its own defaults!)
-
-See [`set_hook()`](crate::set_hook) for more details on customizing your global
-printer.
-*/
+/// A [`ReportHandler`] that displays a given [`Report`](crate::Report) in a
+/// quasi-graphical way, using terminal colors, unicode drawing characters, and
+/// other such things.
+///
+/// This is the default reporter bundled with `miette`.
+///
+/// This printer can be customized by using [`new_themed()`](GraphicalReportHandler::new_themed) and handing it a
+/// [`GraphicalTheme`] of your own creation (or using one of its own defaults!)
+///
+/// See [`set_hook()`](crate::set_hook) for more details on customizing your global
+/// printer.
 #[derive(Debug, Clone)]
 pub struct GraphicalReportHandler {
     pub(crate) links: LinkStyle,
@@ -534,7 +535,7 @@ impl GraphicalReportHandler {
         if let Some(footer) = &self.footer {
             writeln!(f)?;
             let width = self.termwidth.saturating_sub(4);
-            let opts = textwrap::Options::new(width)
+            let opts = Options::new(width)
                 .initial_indent("  ")
                 .subsequent_indent("  ");
             writeln!(f, "{}", textwrap::fill(footer, opts))?;
@@ -586,7 +587,7 @@ impl GraphicalReportHandler {
         };
 
         let width = self.termwidth.saturating_sub(2);
-        let opts = textwrap::Options::new(width).initial_indent(" ");
+        let opts = Options::new(width).initial_indent(" ");
 
         writeln!(f, "{}", textwrap::fill(&diagnostic.to_string(), opts))?;
 
@@ -603,7 +604,7 @@ impl GraphicalReportHandler {
             for error in cause_iter {
                 let initial_indent = " · ".style(severity_style).to_string();
 
-                let opts = textwrap::Options::new(width)
+                let opts = Options::new(width)
                     .initial_indent(&initial_indent)
                     .subsequent_indent("   ");
                 match error {
@@ -632,7 +633,7 @@ impl GraphicalReportHandler {
         if let Some(help) = diagnostic.help() {
             let width = self.termwidth.saturating_sub(4);
             let initial_indent = "  help: ".style(self.theme.styles.help).to_string();
-            let opts = textwrap::Options::new(width)
+            let opts = Options::new(width)
                 .initial_indent(&initial_indent)
                 .subsequent_indent("        ");
             write!(f, "{}", "=".style(self.theme.styles.linum))?;
@@ -1415,11 +1416,6 @@ impl<'a> std::fmt::Display for ErrorKind<'a> {
         }
     }
 }
-
-use backtrace::Backtrace;
-use thiserror::Error;
-
-use miette::{self as miette, Context, Result};
 
 /// Tells miette to render panics using its rendering engine.
 pub fn set_panic_hook() {
