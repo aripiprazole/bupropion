@@ -1,23 +1,24 @@
-//! Copyright (C) [yyyy]
-//!
-//! Licensed under the Apache License, Version 2.0 (the "License");
-//! you may not use this file except in compliance with the License.
-//! You may obtain a copy of the License at
-//!
-//!         http://www.apache.org/licenses/LICENSE-2.0
-//!
-//! Unless required by applicable law or agreed to in writing, software
-//! distributed under the License is distributed on an "AS IS" BASIS,
-//! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//! See the License for the specific language governing permissions and
-//! limitations under the License.
-//!
-//! NOTE: This includes code from https://github.com/zkat/miette under the Apache 2.0 license. Which
-//! it also includes code taken from eyre, and some from thiserror, also under the Apache License.
-//! Some code is taken from ariadne, which is MIT licensed.
-//!
-//! NOTE: This module is made to change the style of the pretty printting of errors.
-
+/**
+ * Copyright (C) 2023
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * NOTE: This includes code from https://github.com/zkat/miette under the Apache 2.0 license. Which
+ * it also includes code taken from eyre, and some from thiserror, also under the Apache License.
+ * Some code is taken from ariadne, which is MIT licensed.
+ *
+ * NOTE: This module is made to change the style of the pretty printting of errors.
+ */
 use std::fmt;
 
 use miette::Diagnostic;
@@ -46,7 +47,7 @@ pub enum RgbColors {
 ///
 /// ```no_run
 /// miette::set_hook(Box::new(|_| {
-///     Box::new(bupropion::MietteHandlerOpts::new()
+///     Box::new(bupropion::BupropionHandlerOpts::new()
 ///         .terminal_links(true)
 ///         .unicode(false)
 ///         .context_lines(3)
