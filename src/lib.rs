@@ -605,7 +605,7 @@ impl GraphicalReportHandler {
 
                 let opts = textwrap::Options::new(width)
                     .initial_indent(&initial_indent)
-                    .subsequent_indent(&initial_indent);
+                    .subsequent_indent("   ");
                 match error {
                     ErrorKind::Diagnostic(diag) => {
                         let mut inner = String::new();
