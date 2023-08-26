@@ -585,12 +585,8 @@ impl GraphicalReportHandler {
             Some(Severity::Advice) => (self.theme.styles.advice, &self.theme.characters.advice),
         };
 
-        // let initial_indent = format!("  {} ", severity_icon.style(severity_style));
-        let rest_indent = format!("  {} ", self.theme.characters.vbar.style(severity_style));
         let width = self.termwidth.saturating_sub(2);
-        let opts = textwrap::Options::new(width)
-            .initial_indent(" ")
-            .subsequent_indent(&rest_indent);
+        let opts = textwrap::Options::new(width).initial_indent(" ");
 
         writeln!(f, "{}", textwrap::fill(&diagnostic.to_string(), opts))?;
 
@@ -598,38 +594,18 @@ impl GraphicalReportHandler {
             return Ok(());
         }
 
-        if let Some(mut cause_iter) = diagnostic
+        if let Some(cause_iter) = diagnostic
             .diagnostic_source()
             .map(DiagnosticChain::from_diagnostic)
             .or_else(|| diagnostic.source().map(DiagnosticChain::from_stderror))
             .map(|it| it.peekable())
         {
-            while let Some(error) = cause_iter.next() {
-                let is_last = cause_iter.peek().is_none();
-                let char = if !is_last {
-                    self.theme.characters.lcross
-                } else {
-                    self.theme.characters.lbot
-                };
-                let initial_indent = format!(
-                    "  {}{}{} ",
-                    char, self.theme.characters.hbar, self.theme.characters.rarrow
-                )
-                .style(severity_style)
-                .to_string();
-                let rest_indent = format!(
-                    "  {}   ",
-                    if is_last {
-                        ' '
-                    } else {
-                        self.theme.characters.vbar
-                    }
-                )
-                .style(severity_style)
-                .to_string();
+            for error in cause_iter {
+                let initial_indent = " · ".style(severity_style).to_string();
+
                 let opts = textwrap::Options::new(width)
                     .initial_indent(&initial_indent)
-                    .subsequent_indent(&rest_indent);
+                    .subsequent_indent(&initial_indent);
                 match error {
                     ErrorKind::Diagnostic(diag) => {
                         let mut inner = String::new();
