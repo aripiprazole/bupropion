@@ -525,7 +525,7 @@ impl GraphicalReportHandler {
             Some(Severity::Warning) => self.theme.styles.warning,
             Some(Severity::Advice) => self.theme.styles.advice,
         };
-        write!(f, "{}", "failure".style(severity_style))?;
+        write!(f, "{}", "Failure".style(severity_style))?;
         self.render_header(f, diagnostic)?;
         self.render_causes(f, diagnostic)?;
         let src = diagnostic.source_code();
@@ -654,13 +654,13 @@ impl GraphicalReportHandler {
             for rel in related {
                 match rel.severity() {
                     Some(Severity::Error) | None => {
-                        write!(f, "{}", "error".style(self.theme.styles.error))?
+                        write!(f, "{}", "Error".style(self.theme.styles.error))?
                     }
                     Some(Severity::Warning) => {
-                        write!(f, "{}", "warning".style(self.theme.styles.warning))?
+                        write!(f, "{}", "Warning".style(self.theme.styles.warning))?
                     }
                     Some(Severity::Advice) => {
-                        write!(f, "{}", "advice".style(self.theme.styles.advice))?
+                        write!(f, "{}", "Advice".style(self.theme.styles.advice))?
                     }
                 };
                 self.render_header(f, rel)?;
