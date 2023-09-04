@@ -25,13 +25,13 @@ use std::fmt::Write;
 use backtrace::Backtrace;
 use thiserror::Error;
 
-use miette::{Context, Result};
 use miette::Diagnostic;
 use miette::GraphicalTheme;
 use miette::NarratableReportHandler;
 use miette::ReportHandler;
 use miette::ThemeCharacters;
 use miette::ThemeStyles;
+use miette::{Context, Result};
 use textwrap::Options;
 use unicode_width::UnicodeWidthChar;
 
@@ -1224,13 +1224,14 @@ impl ReportHandler for GraphicalReportHandler {
         self.render_report(&mut string, diagnostic)?;
 
         // Increase indent to
-        let string = string
+        let mut string = string
             .split('\n')
             .map(|a| format!("  {a}"))
-            .collect::<Vec<_>>()
-            .join("\n");
+            .collect::<Vec<_>>();
+        string.remove(string.len() - 1);
+        string.remove(string.len() - 1);
 
-        write!(f, "{string}")
+        write!(f, "{}", string.join("\n"))
     }
 
     fn display(
@@ -1527,7 +1528,7 @@ mod tests {
 
     #[test]
     fn test_render_report() {
-        let handler = BupropionHandlerOpts::new().build_inner();
+        let handler = BupropionHandlerOpts::new().build_inner().unwrap();
         let mut output = String::new();
         let failure = Failure {
             source_code: NamedSource::new("Example.zu", include_str!("../Example.zu")),
@@ -1536,10 +1537,14 @@ mod tests {
                 here: miette::SourceSpan::from(7..10),
             }],
         };
-        handler
-            .unwrap()
-            .render_report(&mut output, &failure)
-            .unwrap();
-        println!("{output}");
+        handler.render_report(&mut output, &failure).unwrap();
+        let mut string = output
+            .split('\n')
+            .map(|a| format!("  {a}"))
+            .collect::<Vec<_>>();
+        string.remove(string.len() - 1);
+        string.remove(string.len() - 1);
+        
+        println!("{}", string.join("\n"));
     }
 }
