@@ -5,6 +5,7 @@ version = "0.0.13"
 edition = "2021"
 authors = ["Gabrielle Guimarães de Oliveira"]
 documentation = "https://github.com/aripiprazole/bupropion"
+repository = "https://github.com/aripiprazole/bupropion"
 license = "MIT"
 keywords = ["incremental", "parsing", "asena"]
 categories = ["parsing", "text-editors"]
