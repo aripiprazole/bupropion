@@ -80,19 +80,19 @@ pub struct BupropionHandlerOpts {
     pub(crate) with_cause_chain: Option<bool>,
 }
 
+/// Sets the panic hook to use a custom [`MietteHandler`].
+pub fn install<F>(f: F) -> Result<(), miette::InstallError>
+where
+    F: FnOnce() -> BupropionHandlerOpts,
+{
+    let opts = f();
+    miette::set_hook(Box::new(move |_| Box::new(opts.clone().build())))?;
+    set_panic_hook();
+
+    Ok(())
+}
+
 impl BupropionHandlerOpts {
-    /// Sets the panic hook to use a custom [`MietteHandler`].
-    pub fn install<F>(f: F) -> Result<(), miette::InstallError>
-    where
-        F: FnOnce() -> BupropionHandlerOpts,
-    {
-        let opts = f();
-        miette::set_hook(Box::new(move |_| Box::new(opts.clone().build())))?;
-        set_panic_hook();
-
-        Ok(())
-    }
-
     /// Create a new `MietteHandlerOpts`.
     pub fn new() -> Self {
         Self::default()
@@ -1544,7 +1544,7 @@ mod tests {
             .collect::<Vec<_>>();
         string.remove(string.len() - 1);
         string.remove(string.len() - 1);
-        
+
         println!("{}", string.join("\n"));
     }
 }
