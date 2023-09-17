@@ -4,12 +4,12 @@ Fancy diagnostics for [Miette](https://crates.io/crates/miette):
 
 ```rust
 fn main() {
-  bupropion::BupropionHandlerOpts::install(|| {
-        // Build the bupropion handler options, for specific
-        // error presenting.
-        bupropion::BupropionHandlerOpts::new()
-    })
-    .into_diagnostic()?;
+  bupropion::install(|| {
+      // Build the bupropion handler options, for specific
+      // error presenting.
+      bupropion::BupropionHandlerOpts::new()
+  })
+  .into_diagnostic()?;
 }
 ```
 
