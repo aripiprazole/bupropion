@@ -1,7 +1,7 @@
 [package]
 name = "bupropion"
 description = "Fancy error handler implementation for Miette"
-version = "0.0.19"
+version = "0.0.20"
 edition = "2021"
 authors = ["Gabrielle Guimarães de Oliveira"]
 documentation = "https://github.com/aripiprazole/bupropion"

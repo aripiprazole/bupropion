@@ -66,6 +66,7 @@ pub enum RgbColors {
 /// ```
 #[derive(Default, Debug, Clone)]
 pub struct BupropionHandlerOpts {
+    pub(crate) spacious: Option<bool>,
     pub(crate) linkify: Option<bool>,
     pub(crate) width: Option<usize>,
     pub(crate) theme: Option<GraphicalTheme>,
@@ -116,6 +117,12 @@ impl BupropionHandlerOpts {
             .color(true)
             .rgb_colors(RgbColors::Never)
             .with_cause_chain()
+    }
+
+    /// Set spacious mode for the handler when rendering in graphical mode.
+    pub fn spacious(mut self, spacious: bool) -> Self {
+        self.spacious = Some(spacious);
+        self
     }
 
     /// If true, specify whether the graphical handler will make codes be
@@ -287,6 +294,9 @@ impl BupropionHandlerOpts {
                     handler = handler.without_cause_chain();
                 }
             }
+            if let Some(spacious) = self.spacious {
+                handler = handler.spacious(spacious);
+            }
             if let Some(footer) = self.footer {
                 handler = handler.with_footer(footer);
             }
@@ -441,8 +451,8 @@ impl GraphicalReportHandler {
     }
 
     /// Make the output more spacious.
-    pub fn spacious(mut self) -> Self {
-        self.spacious = true;
+    pub fn spacious(mut self, spacious: bool) -> Self {
+        self.spacious = spacious;
         self
     }
 
@@ -548,6 +558,7 @@ impl GraphicalReportHandler {
                 .initial_indent("  ")
                 .subsequent_indent("  ");
             writeln!(f, "{}", textwrap::fill(footer, opts))?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -646,9 +657,8 @@ impl GraphicalReportHandler {
                 .initial_indent(&initial_indent)
                 .subsequent_indent("        ");
             write!(f, "{}", "=".style(self.theme.styles.linum))?;
-            write!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
+            writeln!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
         }
-        writeln!(f)?;
         Ok(())
     }
 
@@ -660,6 +670,7 @@ impl GraphicalReportHandler {
     ) -> fmt::Result {
         if let Some(related) = diagnostic.related() {
             for rel in related {
+                writeln!(f)?;
                 match rel.severity() {
                     Some(Severity::Error) | None => {
                         write!(f, "{}", "error".style(self.theme.styles.error))?
@@ -677,6 +688,7 @@ impl GraphicalReportHandler {
                 self.render_snippets(f, rel, src)?;
                 self.render_footer(f, rel)?;
                 self.render_related(f, rel, src)?;
+                writeln!(f)?;
             }
         }
         Ok(())
@@ -1515,15 +1527,36 @@ mod tests {
     use miette::{diagnostic, NamedSource};
 
     #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-    #[error("inner failure")]
-    #[diagnostic(code(test::inner), help("this is a help message"), url(docsrs))]
-    struct Inner {
+    #[error("failure[beml::unfying::incompatible_types]: incompatible types: int and 'n list")]
+    #[diagnostic(code(test::failure))]
+    struct InnerFailure {
+        #[source_code]
+        source_code: miette::NamedSource<String>,
+
         #[label = "here"]
         here: miette::SourceSpan,
+
+        #[related]
+        inner: Vec<Inner>,
     }
 
     #[derive(Debug, thiserror::Error, miette::Diagnostic)]
-    #[error("test failure")]
+    #[error("inner failure:")]
+    #[diagnostic(
+        code(test::inner::agsaga::agagsgdga::gfsagasfs),
+        help("this is a help message"),
+        url(docsrs)
+    )]
+    struct Inner {
+        #[label = "here"]
+        here: miette::SourceSpan,
+
+        #[diagnostic_source]
+        source: InnerFailure,
+    }
+
+    #[derive(Debug, thiserror::Error, miette::Diagnostic)]
+    #[error("failure[beml::unfying::incompatible_types]: incompatible types: int and 'n list")]
     #[diagnostic(code(test::failure))]
     struct Failure {
         #[source_code]
@@ -1536,6 +1569,31 @@ mod tests {
         inner: Vec<Inner>,
     }
 
+    fn should_fail() -> miette::Result<()> {
+        Err(Failure {
+            source_code: NamedSource::new("Example.zu", include_str!("../Example.zu").to_string()),
+            here: miette::SourceSpan::from(7..10),
+            inner: vec![Inner {
+                here: miette::SourceSpan::from(7..10),
+                source: InnerFailure {
+                    source_code: NamedSource::new(
+                        "Example.zu",
+                        include_str!("../Example.zu").to_string(),
+                    ),
+                    here: miette::SourceSpan::from(7..10),
+                    inner: vec![],
+                },
+            }],
+        })?
+    }
+
+    #[test]
+    fn test_render_report_with_installed_handler() {
+        crate::install(BupropionHandlerOpts::new).unwrap();
+
+        println!("{:?}", should_fail().unwrap_err());
+    }
+
     #[test]
     fn test_render_report() {
         let handler = BupropionHandlerOpts::new().build_inner().unwrap();
@@ -1545,6 +1603,14 @@ mod tests {
             here: miette::SourceSpan::from(7..10),
             inner: vec![Inner {
                 here: miette::SourceSpan::from(7..10),
+                source: InnerFailure {
+                    source_code: NamedSource::new(
+                        "Example.zu",
+                        include_str!("../Example.zu").to_string(),
+                    ),
+                    here: miette::SourceSpan::from(7..10),
+                    inner: vec![],
+                },
             }],
         };
         handler.render_report(&mut output, &failure).unwrap();
