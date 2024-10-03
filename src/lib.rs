@@ -393,6 +393,7 @@ impl ReportHandler for MietteHandler {
 /// printer.
 #[derive(Debug, Clone)]
 pub struct GraphicalReportHandler {
+    pub(crate) spacious: bool,
     pub(crate) links: LinkStyle,
     pub(crate) termwidth: usize,
     pub(crate) theme: GraphicalTheme,
@@ -414,6 +415,7 @@ impl GraphicalReportHandler {
     /// [`GraphicalTheme`]. This will use both unicode characters and colors.
     pub fn new() -> Self {
         Self {
+            spacious: false,
             links: LinkStyle::Link,
             termwidth: 200,
             theme: GraphicalTheme::default(),
@@ -427,6 +429,7 @@ impl GraphicalReportHandler {
     ///Create a new `GraphicalReportHandler` with a given [`GraphicalTheme`].
     pub fn new_themed(theme: GraphicalTheme) -> Self {
         Self {
+            spacious: false,
             links: LinkStyle::Link,
             termwidth: 200,
             theme,
@@ -435,6 +438,12 @@ impl GraphicalReportHandler {
             tab_width: 4,
             with_cause_chain: true,
         }
+    }
+
+    /// Make the output more spacious.
+    pub fn spacious(mut self) -> Self {
+        self.spacious = true;
+        self
     }
 
     /// Set the displayed tab width in spaces.
@@ -525,7 +534,7 @@ impl GraphicalReportHandler {
             Some(Severity::Warning) => self.theme.styles.warning,
             Some(Severity::Advice) => self.theme.styles.advice,
         };
-        write!(f, "{}", "Failure".style(severity_style))?;
+        write!(f, "{}", "failure".style(severity_style))?;
         self.render_header(f, diagnostic)?;
         self.render_causes(f, diagnostic)?;
         let src = diagnostic.source_code();
@@ -573,7 +582,7 @@ impl GraphicalReportHandler {
                 let url = diagnostic.url().unwrap(); // safe
                 write!(header, " ({})", url.style(self.theme.styles.link))?;
             }
-            write!(header, "{}", format!("[{code}]: ").style(severity_style))?;
+            write!(header, "{}", format!("[{code}]:").style(severity_style))?;
             write!(f, "{}", header)?;
         }
         Ok(())
@@ -640,7 +649,6 @@ impl GraphicalReportHandler {
             write!(f, "{}", textwrap::fill(&help.to_string(), opts))?;
         }
         writeln!(f)?;
-        writeln!(f)?;
         Ok(())
     }
 
@@ -654,13 +662,13 @@ impl GraphicalReportHandler {
             for rel in related {
                 match rel.severity() {
                     Some(Severity::Error) | None => {
-                        write!(f, "{}", "Error".style(self.theme.styles.error))?
+                        write!(f, "{}", "error".style(self.theme.styles.error))?
                     }
                     Some(Severity::Warning) => {
-                        write!(f, "{}", "Warning".style(self.theme.styles.warning))?
+                        write!(f, "{}", "warning".style(self.theme.styles.warning))?
                     }
                     Some(Severity::Advice) => {
-                        write!(f, "{}", "Advice".style(self.theme.styles.advice))?
+                        write!(f, "{}", "advice".style(self.theme.styles.advice))?
                     }
                 };
                 self.render_header(f, rel)?;
@@ -807,8 +815,10 @@ impl GraphicalReportHandler {
             writeln!(f, "{}:{}", contents.line() + 1, contents.column() + 1)?;
         }
 
-        self.write_no_linum(f, linum_width)?;
-        writeln!(f)?;
+        if self.spacious {
+            self.write_no_linum(f, linum_width)?;
+            writeln!(f)?;
+        }
 
         // Now it's time for the fun part--actually rendering everything!
         for line in &lines {
@@ -841,8 +851,6 @@ impl GraphicalReportHandler {
                     &single_line,
                     &labels,
                 )?;
-                self.write_no_linum(f, linum_width)?;
-                writeln!(f)?;
             }
             for hl in multi_line {
                 if hl.label().is_some() && line.span_ends(hl) && !line.span_starts(hl) {
@@ -855,8 +863,10 @@ impl GraphicalReportHandler {
             }
         }
 
-        self.write_no_linum(f, linum_width)?;
-        writeln!(f)?;
+        if self.spacious {
+            self.write_no_linum(f, linum_width)?;
+            writeln!(f)?;
+        }
 
         write!(f, "{}", " ".repeat(linum_width + 2),)?;
         Ok(())
@@ -1517,7 +1527,7 @@ mod tests {
     #[diagnostic(code(test::failure))]
     struct Failure {
         #[source_code]
-        source_code: miette::NamedSource,
+        source_code: miette::NamedSource<String>,
 
         #[label = "here"]
         here: miette::SourceSpan,
@@ -1531,7 +1541,7 @@ mod tests {
         let handler = BupropionHandlerOpts::new().build_inner().unwrap();
         let mut output = String::new();
         let failure = Failure {
-            source_code: NamedSource::new("Example.zu", include_str!("../Example.zu")),
+            source_code: NamedSource::new("Example.zu", include_str!("../Example.zu").to_string()),
             here: miette::SourceSpan::from(7..10),
             inner: vec![Inner {
                 here: miette::SourceSpan::from(7..10),
