@@ -918,7 +918,7 @@ impl GraphicalReportHandler {
                 arrow = true;
                 break;
             } else if line.span_flyby(hl) {
-                gutter.push_str(&chars.vbar.to_string());
+                gutter.push(chars.vbar);
             } else {
                 gutter.push(' ');
             }
